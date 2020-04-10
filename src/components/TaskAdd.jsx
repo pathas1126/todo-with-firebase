@@ -42,4 +42,4 @@ const TaskAdd = ({ task, onChangeHandler, onClickHandler, modify }) => {
   );
 };
 
-export default TaskAdd;
+export default React.memo(TaskAdd);

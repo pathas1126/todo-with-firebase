@@ -1,20 +1,44 @@
-import React, { useState } from "react";
-import { useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { TaskAdd, TaskDisplay } from "./components";
+
+import { firestore } from "./firebase";
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [task, setTask] = useState("");
-  const idRef = useRef(1);
   const [modify, setModify] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const fetchData = useCallback(() => {
+    let tasksData = [];
+    setLoading(true);
+    firestore
+      .collection("tasks")
+      .get()
+      .then((docs) => {
+        docs.forEach((doc) => {
+          tasksData.push({ todo: doc.data().todo, id: doc.id });
+        });
+        setTasks((prevTasks) => prevTasks.concat(tasksData));
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const onClickHandler = (e) => {
     e.preventDefault();
     if (task !== "") {
-      const todo = { todo: task, id: idRef.current };
-      setTasks((prevTasks) => tasks.concat(todo));
+      firestore
+        .collection("tasks")
+        .add({ todo: task })
+        .then((res) => {
+          console.log(res);
+          setTasks((prevTasks) => tasks.concat({ todo: task, id: res.id }));
+        });
       setTask("");
-      idRef.current += 1;
     }
   };
 
@@ -23,7 +47,15 @@ function App() {
   };
 
   const removeHandler = (id) => {
-    setTasks((prevTasks) => tasks.filter((task) => task.id !== id));
+    firestore
+      .collection("tasks")
+      .doc(id)
+      .delete()
+      .then(() =>
+        setTasks((prevTasks) =>
+          prevTasks.filter((prevTask) => id !== prevTask.id)
+        )
+      );
   };
 
   const modifyHandler = (id) => {
@@ -51,13 +83,16 @@ function App() {
         onChangeHandler={onChangeHandler}
         modify={modify}
       />
-      <TaskDisplay
-        tasks={tasks}
-        removeHandler={removeHandler}
-        modifyHandler={modifyHandler}
-      />
+      {loading && <h1>Loading ...</h1>}
+      {!loading && (
+        <TaskDisplay
+          tasks={tasks}
+          removeHandler={removeHandler}
+          modifyHandler={modifyHandler}
+        />
+      )}
     </div>
   );
 }
 
-export default App;
+export default React.memo(App);

@@ -74,4 +74,4 @@ const TaskDisplay = ({ tasks, removeHandler, modifyHandler }) => {
   );
 };
 
-export default TaskDisplay;
+export default React.memo(TaskDisplay);
